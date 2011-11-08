@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!-- saved from url=(0034)http://localhost:8000/ch18s11.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>18.10.&nbsp;Extracting Attachments from Mail</title><link rel="stylesheet" href="./recipe_18_10_files/core.css" type="text/css"><meta name="generator" content="DocBook XSL Stylesheets V1.74.0"></head><body><div class="sect1" title="18.10. Extracting Attachments from Mail"><div class="titlepage"><div><div><h1 class="title"><a id="perlckbk2-CHP-18-SECT-10">18.10.&nbsp;Extracting Attachments from Mail</a></h1></div></div></div><div class="sect2" title="Problem"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-18-SECT-10.1">Problem</a></h2></div></div></div><p><a id="perlckbk2-CHP-18-ITERM-5799" class="indexterm">You have one or more mail messages with MIME
+        attachments, and you want to process these messages with a Perl
+        program to extract files or otherwise manipulate attachments.</a></p></div><div class="sect2" title="Solution"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-18-SECT-10.2">Solution</a></h2></div></div></div><p><a id="perlckbk2-CHP-18-SECT-10.2">Use the MIME-Tools bundle from CPAN:</a><a id="perlckbk2-CHP-18-ITERM-5800" class="indexterm"></a></p><a id="I_18_tt1862"><pre class="programlisting">use MIME::Parser;
+
+$parser = MIME::Parser-&gt;new( );
+$parser-&gt;output_to_core(1);      # don't write attachments to disk
+
+$message  = $parser-&gt;parse_data($MESSAGE);    # die( )s if can't parse
+# OR
+$message  = $parser-&gt;parse($FILEHANDLE);      # die( )s if can't parse
+
+$head     = $message-&gt;head( );                 # object--see docs
+$preamble = $message-&gt;preamble;               # ref to array of lines
+$epilogue = $message-&gt;epilogue;               # ref to array of lines
+
+$num_parts = $message-&gt;parts;
+for (my $i=0; $i &lt; $num_parts; $i++) {
+  my $part         = $message-&gt;parts($i);
+  my $content_type = $part-&gt;mime_type;
+  my $body         = $part-&gt;as_string;
+}</pre></a></div><div class="sect2" title="Discussion"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-18-SECT-10.3">Discussion</a></h2></div></div></div><p><a id="perlckbk2-CHP-18-ITERM-5801" class="indexterm">Formally, a MIME message has only two parts: the head
+        (containing headers such as <code class="literal">From</code>
+        and <code class="literal">Subject</code>) and the body
+        (containing the message, rather than its metadata). The body, however,
+        has three parts: the preamble (text before the first attachment), a
+        series of parts (the attachments), and the epilogue (text after the
+        last attachment). This is shown in </a><a class="link" href="http://localhost:8000/ch18s11.html#perlckbk2-CHP-18-FIG-1" title="Figure 18-1. Composition of a MIME message">Figure 18-1</a>.</p><div class="figure"><a id="perlckbk2-CHP-18-FIG-1"></a><div class="figure-contents"><a id="perlckbk2-CHP-18-FIG-1"></a><div class="mediaobject"><a id="perlckbk2-CHP-18-FIG-1"></a><a id="I_18_tt1863"><img src="./recipe_18_10_files/httpatomoreillycomsourceoreillyimages146665.png" width="156" alt="Composition of a MIME message"></a></div></div><p class="title"><a id="I_18_tt1863">Figure&nbsp;18-1.&nbsp;Composition of a MIME message</a></p></div><p><a id="I_18_tt1863">In the Solution, we disable the default behavior of MIME::Parser
+        that writes the attachments to disk. Doing so increases memory
+        consumption because now the decoded attachments must be stored in
+        memory, but prevents the need to clean up temporary files and
+        directories once the attachments are no longer needed.</a></p><p><a id="I_18_tt1863">To write attachments to a file, replace the call to <code class="literal">output_to_core</code> with calls to methods that
+        specify the directory in which to store the attachments and what to
+        name the files. The <code class="literal">output_under</code>
+        method specifies a directory under which each message will get its own
+        subdirectory; those subdirectories will contain the decoded
+        attachments:</a></p><a id="I_18_tt1864"><pre class="programlisting">$parser-&gt;output_under("/tmp");
+# parsing creates files like /tmp/msg-1048509652-16134-0/foo.png</pre><p>Alternatively, <code class="literal">output_dir</code>
+        specifies a directory into which all attachment files go:</p></a><a id="I_18_tt1865"><pre class="programlisting">$parser-&gt;output_dir("/tmp");
+# parsing creates files like /tmp/foo.png</pre><p>To clean up temporary files once parsing is done, say:</p></a><a id="I_18_tt1866"><pre class="programlisting">$parser-&gt;filer-&gt;purge;</pre><p>Because parsing can trigger exceptions, catch the exceptions if
+        you want to clean up:</p></a><a id="I_18_tt1867"><pre class="programlisting">eval { $message = $parser-&gt;parse($FILEHANDLE) };
+# ...
+$parser-&gt;filer-&gt;purge;</pre><p>Whether you create files on disk, you can still treat the
+        attachments as files by using the <code class="literal">open</code> method on an individual part:</p></a><a id="I_18_tt1868"><pre class="programlisting">for (my $i=0; $i &lt; $num_parts; $i++) {
+  my $part = $message-&gt;parts($i);
+  my $fh = $part-&gt;open("r") or die "Can't open for reading: $!\n";
+  while (&lt;$fh&gt;) {
+    # reading lines from the current attachment
+  }
+}</pre><p>There are actually six different classes that form part of the
+        MIME-Tools distribution, and each is well-documented. Start with the
+        MIME::Tools manpage and explore from there.</p></a></div><div class="sect2" title="See Also"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-18-SECT-10.4">See Also</a></h2></div></div></div><p><a id="perlckbk2-CHP-18-SECT-10.4">The MIME::Tools manpage and other documentation for the
+        MIME-Tools distribution</a></p></div></div><a id="perlckbk2-CHP-18-SECT-10.4">
+</a></body></html>

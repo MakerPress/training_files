@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!-- saved from url=(0034)http://localhost:8000/ch08s09.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>8.8.&nbsp;Reading a Particular Line in a File</title><link rel="stylesheet" href="./recipe_08_08_files/core.css" type="text/css"><meta name="generator" content="DocBook XSL Stylesheets V1.74.0"></head><body><div class="sect1" title="8.8. Reading a Particular Line in a File"><div class="titlepage"><div><div><h1 class="title"><a id="perlckbk2-CHP-8-SECT-8">8.8.&nbsp;Reading a Particular Line in a File</a></h1></div></div></div><div class="sect2" title="Problem"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-8-SECT-8.1">Problem</a></h2></div></div></div><p><a id="perlckbk2-CHP-8-ITERM-4270" class="indexterm"> </a><a id="perlckbk2-CHP-8-ITERM-4271" class="indexterm">You want to extract a single line from a file.</a></p></div><div class="sect2" title="Solution"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-8-SECT-8.2">Solution</a></h2></div></div></div><p><a id="perlckbk2-CHP-8-SECT-8.2">The simplest solution is to read the lines until you get to the
+        one you want:</a></p><a id="I_8_tt894"><pre class="programlisting"># looking for line number $DESIRED_LINE_NUMBER
+$. = 0;
+do { $LINE = &lt;HANDLE&gt; } until $. =  = $DESIRED_LINE_NUMBER || eof;</pre><p>If you are going to be doing this a lot and the file fits into
+        memory, read the file into an array:</p></a><a id="I_8_tt895"><pre class="programlisting">@lines = &lt;HANDLE&gt;;
+$LINE = $lines[$DESIRED_LINE_NUMBER];</pre></a><p><a id="I_8_tt895">The standard (as of v5.8) Tie::File ties an array to a file, one
+        line per array element:</a><a id="perlckbk2-CHP-8-ITERM-4272" class="indexterm"></a></p><a id="I_8_tt896"><pre class="programlisting">use Tie::File;
+use Fcntl;
+
+tie(@lines, Tie::File, $FILE, mode =&gt; O_RDWR)
+  or die "Cannot tie file $FILE: $!\n";
+$line = $lines[$sought - 1];</pre></a><p><a id="I_8_tt896">If you have the DB_File module, its <code class="literal">DB_RECNO</code> access method ties an array to a
+        file, one line per array element:</a><a id="perlckbk2-CHP-8-ITERM-4273" class="indexterm"></a></p><a id="I_8_tt897"><pre class="programlisting">use DB_File;
+use Fcntl;
+
+$tie = tie(@lines, DB_File, $FILE, O_RDWR, 0666, $DB_RECNO) or die 
+    "Cannot open file $FILE: $!\n";
+# extract it
+$line = $lines[$sought - 1];</pre></a></div><div class="sect2" title="Discussion"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-8-SECT-8.3">Discussion</a></h2></div></div></div><p><a id="perlckbk2-CHP-8-SECT-8.3">Each strategy has different features, useful in different
+        circumstances. The linear access approach is easy to write and best
+        for short files. The Tie::File module gives good performance,
+        regardless of the size of the file or which line you're reading (and
+        is pure Perl, so doesn't require any external libraries). The DB_File
+        mechanism has some initial overhead, but later accesses are faster
+        than with linear access, so use it for long files that are accessed
+        more than once and are accessed out of order.</a></p><p><a id="perlckbk2-CHP-8-SECT-8.3">It is important to know whether you're counting lines from 0 or
+        1. The <code class="literal">$</code>. variable is 1 after the
+        first line is read, so count from 1 when using linear access. The
+        index mechanism uses many offsets, so count from 0. Tie::File and
+        DB_File treat the file's records as an array indexed from 0, so count
+        lines from 0.</a></p><p><a id="perlckbk2-CHP-8-SECT-8.3">Here are three different implementations of the same program,
+        <span class="emphasis"><em>print_line</em></span>. The program takes two arguments: a
+        filename and a line number to extract.</a></p><p><a id="perlckbk2-CHP-8-SECT-8.3">The version in </a><a class="link" href="http://localhost:8000/ch08s09.html#perlckbk2-CHP-8-EX-1" title="Example 8-1. print_line-v1">Example
+        8-1</a> simply reads lines until it finds the one it's looking
+        for.</p><div class="example"><a id="perlckbk2-CHP-8-EX-1"><p class="title">Example&nbsp;8-1.&nbsp;print_line-v1</p><div class="example-contents"><pre class="programlisting">  #!/usr/bin/perl -w
+  # print_line-v1 - linear style
+  
+  @ARGV =  = 2 or die "usage: print_line FILENAME LINE_NUMBER\n";
+  
+  ($filename, $line_number) = @ARGV;
+  open(INFILE, "&lt;", $filename)
+    or die "Can't open $filename for reading: $!\n";
+  while (&lt;INFILE&gt;) {
+      $line = $_;
+      last if $. =  = $line_number;
+  }
+  if ($. != $line_number) {
+      die "Didn't find line $line_number in $filename\n";
+  }
+  print;</pre></div></a></div><p><a id="perlckbk2-CHP-8-EX-1">The Tie::File version is shown in </a><a class="link" href="http://localhost:8000/ch08s09.html#perlckbk2-CHP-8-EX-2" title="Example 8-2. print_line-v2">Example 8-2</a>.</p><div class="example"><a id="perlckbk2-CHP-8-EX-2"><p class="title">Example&nbsp;8-2.&nbsp;print_line-v2</p><div class="example-contents"><pre class="programlisting">  #!/usr/bin/perl -w
+  # print_line-v2 - Tie::File style
+  use Tie::File;
+  use Fcntl;
+  @ARGV =  = 2 or die "usage: print_line FILENAME LINE_NUMBER\n";
+  ($filename, $line_number) = @ARGV;
+  tie @lines, Tie::File, $filename, mode =&gt; O_RDWR
+      or die "Can't open $filename for reading: $!\n";
+  if (@lines &gt; $line_number) {
+      die "Didn't find line $line_number in $filename\n";
+  }
+  print "$lines[$line_number-1]\n";</pre></div></a></div><p><a id="perlckbk2-CHP-8-EX-2">The DB_File version in </a><a class="link" href="http://localhost:8000/ch08s09.html#perlckbk2-CHP-8-EX-3" title="Example 8-3. print_line-v3">Example 8-3</a> follows the same
+        logic as Tie::File.</p><div class="example"><a id="perlckbk2-CHP-8-EX-3"><p class="title">Example&nbsp;8-3.&nbsp;print_line-v3</p><div class="example-contents"><pre class="programlisting">  #!/usr/bin/perl -w
+  # print_line-v3 - DB_File style
+  use DB_File;
+  use Fcntl;
+  
+  @ARGV =  = 2 or die "usage: print_line FILENAME LINE_NUMBER\n";
+  ($filename, $line_number) = @ARGV;
+  $tie = tie(@lines, DB_File, $filename, O_RDWR, 0666, $DB_RECNO)
+      or die "Cannot open file $filename: $!\n";
+  
+  unless ($line_number &lt; $tie-&gt;length) {
+      die "Didn't find line $line_number in $filename\n"
+  }
+  
+  print $lines[$line_number-1];                        # easy, eh?</pre></div></a></div><p><a id="perlckbk2-CHP-8-EX-3">If you will be retrieving lines by number often and the file
+        doesn't fit into memory, build a byte-address index to let you
+        <code class="literal">seek</code> directly to the start of the
+        line using the techniques in </a><a class="link" href="http://localhost:8000/ch08s28.html" title="8.27. Program: Flat File Indexes">Recipe 8.27</a>.</p></div><div class="sect2" title="See Also"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-8-SECT-8.4">See Also</a></h2></div></div></div><p><a id="perlckbk2-CHP-8-SECT-8.4">The documentation for the standard Tie::File and DB_File modules
+        (also in Chapter 32 of <em class="citetitle">Programming Perl</em>); the
+        <code class="literal">tie</code> function in <em class="filename">perlfunc</em>(1) and in Chapter 29 of
+        <em class="citetitle">Programming Perl</em>; the entry on <code class="literal">$</code>. in <em class="filename">perlvar</em>(1) and in Chapter 28 of
+        <em class="citetitle">Programming Perl</em>; </a><a class="link" href="http://localhost:8000/ch08s28.html" title="8.27. Program: Flat File Indexes">Recipe 8.27</a> <a id="perlckbk2-CHP-8-ITERM-4274" class="indexterm"> </a><a id="perlckbk2-CHP-8-ITERM-4275" class="indexterm"></a></p></div></div><a id="perlckbk2-CHP-8-ITERM-4275" class="indexterm">
+</a></body></html>

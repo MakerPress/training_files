@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!-- saved from url=(0034)http://localhost:8000/ch20s02.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>20.1.&nbsp;Fetching a URL from a Perl Script</title><link rel="stylesheet" href="./recipe_20_02_files/core.css" type="text/css"><meta name="generator" content="DocBook XSL Stylesheets V1.74.0"></head><body><div class="sect1" title="20.1. Fetching a URL from a Perl Script"><div class="titlepage"><div><div><h1 class="title"><a id="perlckbk2-CHP-20-SECT-1">20.1.&nbsp;Fetching a URL from a Perl Script</a></h1></div></div></div><div class="sect2" title="Problem"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-20-SECT-1.1">Problem</a></h2></div></div></div><p><a id="perlckbk2-CHP-20-ITERM-5952" class="indexterm"> </a><a id="perlckbk2-CHP-20-ITERM-5953" class="indexterm"> </a><a id="perlckbk2-CHP-20-ITERM-5954" class="indexterm">You have a URL whose contents you want to fetch from a
+        script.</a></p></div><div class="sect2" title="Solution"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-20-SECT-1.2">Solution</a></h2></div></div></div><p><a id="perlckbk2-CHP-20-SECT-1.2">Use the <code class="literal">get</code> function from the
+        CPAN module LWP::Simple, part of LWP.</a><a id="perlckbk2-CHP-20-ITERM-5955" class="indexterm"> </a><a id="perlckbk2-CHP-20-ITERM-5956" class="indexterm"></a></p><a id="I_20_tt1953"><pre class="programlisting">use LWP::Simple;
+$content = get($URL);</pre></a></div><div class="sect2" title="Discussion"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-20-SECT-1.3">Discussion</a></h2></div></div></div><p><a id="perlckbk2-CHP-20-SECT-1.3">The right library makes life easier, and the LWP modules are the
+        right ones for this task. As you can see from the Solution, LWP makes
+        this task a trivial one.</a></p><p><a id="perlckbk2-CHP-20-SECT-1.3">The <code class="literal">get</code> function from
+        LWP::Simple returns <code class="literal">undef</code> on error,
+        so check for errors this way:</a></p><a id="I_20_tt1954"><pre class="programlisting">use LWP::Simple;
+unless (defined ($content = get $URL)) {
+    die "could not get $URL\n";
+}</pre><p>When called that way, however, you can't determine the cause of
+        the error. For this and other elaborate processing, you'll have to go
+        beyond LWP::Simple.</p></a><p><a id="I_20_tt1954"></a><a class="link" href="http://localhost:8000/ch20s02.html#perlckbk2-CHP-20-EX-1" title="Example 20-1. titlebytes">Example 20-1</a> is a
+        program that fetches a remote document. If it fails, it prints out the
+        error status line. Otherwise, it prints out the document title and the
+        number of bytes of content. We use three modules, two of which are
+        from LWP.</p><div class="variablelist"><dl><dt><span class="term">LWP::UserAgent <a id="perlckbk2-CHP-20-ITERM-5957" class="indexterm"></a></span></dt><dd><p><a id="perlckbk2-CHP-20-ITERM-5957" class="indexterm">This module creates a virtual browser. The object returned
+              from the new constructor is used to make the actual request.
+              We've set the name of our agent to "Schmozilla/v9.14 Platinum"
+              just to give the remote webmaster browser-envy when they see it
+              in their logs. This is useful on obnoxious web servers that
+              needlessly consult the user agent string to decide whether to
+              return a proper page or an infuriating "you need Internet
+              Navigator v12 or later to view this site" cop-out.</a></p></dd><dt><a id="perlckbk2-CHP-20-ITERM-5957" class="indexterm"><span class="term">HTTP::Response </span></a><a id="perlckbk2-CHP-20-ITERM-5958" class="indexterm"></a></dt><dd><p><a id="perlckbk2-CHP-20-ITERM-5958" class="indexterm">This is the object type returned when the user agent
+              actually runs the request. We check it for errors and
+              contents.</a></p></dd><dt><a id="perlckbk2-CHP-20-ITERM-5958" class="indexterm"><span class="term">URI::Heuristic </span></a><a id="perlckbk2-CHP-20-ITERM-5959" class="indexterm"></a></dt><dd><p><a id="perlckbk2-CHP-20-ITERM-5959" class="indexterm">This curious little module uses Netscape-style guessing
+              algorithms to expand partial URLs. For example:</a></p></dd></dl></div><div class="informaltable"><a id="ch20-6-fm2xml"><table style="border-collapse: collapse;border-top: 0.5pt solid ; border-bottom: 0.5pt solid ; border-left: 0.5pt solid ; border-right: 0.5pt solid ; "><colgroup><col><col></colgroup><thead><tr><th style="border-right: 0.5pt solid ; border-bottom: 0.5pt solid ; "><p>Simple</p></th><th style="border-bottom: 0.5pt solid ; "><p>Guess</p></th></tr></thead><tbody><tr><td style="border-right: 0.5pt solid ; border-bottom: 0.5pt solid ; "><p> <code class="literal">perl</code>
+                </p></td><td style="border-bottom: 0.5pt solid ; "><p> <a class="ulink" href="http://www.perl.com/">http://www.perl.com</a> </p></td></tr><tr><td style="border-right: 0.5pt solid ; border-bottom: 0.5pt solid ; "><p> <code class="literal">www.oreilly.com</code> </p></td><td style="border-bottom: 0.5pt solid ; "><p> <a class="ulink" href="http://www.oreilly.com/">http://www.oreilly.com</a> </p></td></tr><tr><td style="border-right: 0.5pt solid ; border-bottom: 0.5pt solid ; "><p> <code class="literal">ftp.funet.fi</code>
+                </p></td><td style="border-bottom: 0.5pt solid ; "><p> <a class="ulink" href="ftp://ftp.funet.fi/">ftp://ftp.funet.fi</a> </p></td></tr><tr><td style="border-right: 0.5pt solid ; "><p> <code class="literal">/etc/passwd</code>
+                </p></td><td style=""><p> <span class="emphasis"><em>file:/etc/passwd</em></span>
+                </p></td></tr></tbody></table></a></div><p><a id="ch20-6-fm2xml">Although the simple forms listed aren't legitimate URLs (their
+        format is not in the URI specification), Netscape tries to guess the
+        URLs they stand for. Because Netscape does it, most other browsers do,
+        too.</a></p><p><a id="ch20-6-fm2xml">The source is in </a><a class="link" href="http://localhost:8000/ch20s02.html#perlckbk2-CHP-20-EX-1" title="Example 20-1. titlebytes">Example
+        20-1</a>.</p><div class="example"><a id="perlckbk2-CHP-20-EX-1"><p class="title">Example&nbsp;20-1.&nbsp;titlebytes</p><div class="example-contents"><pre class="programlisting">  #!/usr/bin/perl -w 
+  # titlebytes - find the title and size of documents 
+  use strict;
+  use LWP::UserAgent; 
+  use HTTP::Response; 
+  use URI::Heuristic;
+  my $raw_url = shift                      or die "usage: $0 url\n"; 
+  my $url = URI::Heuristic::uf_urlstr($raw_url);
+  $| = 1;                                  # to flush next line 
+  printf "%s =&gt;\n\t", $url;
+  # bogus user agent
+  my $ua = LWP::UserAgent-&gt;new( ); 
+  $ua-&gt;agent("Schmozilla/v9.14 Platinum"); # give it time, it'll get there
+  # bogus referrer to perplex the log analyzers
+  my $response = $ua-&gt;get($url, Referer =&gt; "http://wizard.yellowbrick.oz");
+  if ($response-&gt;is_error( )) {
+    printf " %s\n", $response-&gt;status_line;
+  } else {
+    my $content = $response-&gt;content( );
+    my $bytes = length $content;
+    my $count = ($content =~ tr/\n/\n/);
+    printf "%s (%d lines, %d bytes)\n",
+      $response-&gt;title( ) || "(no title)", $count, $bytes;
+  }</pre></div></a></div><p><a id="perlckbk2-CHP-20-EX-1">When run, the program produces output like this:</a></p><a id="I_20_tt1955"><pre class="programlisting">% titlebytes http://www.tpj.com/
+<strong class="userinput"><code>http://www.tpj.com/ =&gt;</code></strong>
+               <span class="bolditalic">The Perl Journal (109 lines, 4530 bytes)</span></pre><p>Yes, "referer" is not how "referrer" should be spelled. The
+        standards people got it wrong when they misspelled HTTP_REFERER.
+        Please use double r's when referring to things in English.</p><p>The first argument to the <code class="literal">get</code>
+        method is the URL, and subsequent pairs of arguments are headers and
+        their values.</p></a></div><div class="sect2" title="See Also"><div class="titlepage"><div><div><h2 class="title"><a id="perlckbk2-CHP-20-SECT-1.4">See Also</a></h2></div></div></div><p><a id="perlckbk2-CHP-20-SECT-1.4">The documentation for the CPAN module LWP::Simple, and the
+        <em class="filename">lwpcook</em>(1) and <em class="filename">lwptut</em>(1) manpages that came with LWP; the
+        documentation for the modules LWP::UserAgent, HTTP::Response, and
+        URI::Heuristic; </a><a class="link" href="http://localhost:8000/ch20s03.html" title="20.2. Automating Form Submission">Recipe
+        20.2</a> and <em class="citetitle">Perl &amp; LWP</em> <a id="perlckbk2-CHP-20-ITERM-5960" class="indexterm"> </a><a id="perlckbk2-CHP-20-ITERM-5961" class="indexterm"> </a><a id="perlckbk2-CHP-20-ITERM-5962" class="indexterm"></a></p></div></div><a id="perlckbk2-CHP-20-ITERM-5962" class="indexterm">
+</a></body></html>
